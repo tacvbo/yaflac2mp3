@@ -20,10 +20,12 @@
 # OTHER  KIND OF LOSS WHILE USING OR MISUSING THIS SOFTWARE.
 # See the GNU General Public License for more details.
 
+LAME_OPTS="--vbr-new -V 0 -b 320 --ignore-tag-errors"
+
 old_IFS=${IFS}
 IFS='
 '
-files=( $(find . -type f -name '*flac' | grep flac) )
+files=( `find . -type f -name '*flac'` )
 IFS=${old_IFS}
 
 
@@ -39,7 +41,7 @@ for N_files in ${!files[@]}
         export "$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])=\"${vars[${N_vars}]#*=}\""
     done
     flac -dc "${files[${N_files}]}" |\
-    lame \
+    lame ${LAME_OPTS} \
         "${artist:+--ta ${artist}}" \
         "${tracknumber:+--tn ${tracknumber}}" \
         "${title:+--tt ${title}}" \
