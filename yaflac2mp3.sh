@@ -20,7 +20,7 @@
 # OTHER  KIND OF LOSS WHILE USING OR MISUSING THIS SOFTWARE.
 # See the GNU General Public License for more details.
 
-LAME_OPTS="--vbr-new -V 0 -b 320"
+LAME_OPTS="-V 0 --vbr-new"
 
 old_IFS=${IFS}
 IFS='
@@ -49,5 +49,5 @@ for N_files in ${!files[@]}
         ${date:+--ty "${date}"} \
         ${genre:+--tg "${genre}"} \
         ${comment:+--tc "${comment}"} -\
-          "${files[${N_files}]/\.flac/.mp3}"
+        "${files[${N_files}]/\.flac/.mp3}"
 done
