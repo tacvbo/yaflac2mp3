@@ -20,7 +20,7 @@
 # OTHER  KIND OF LOSS WHILE USING OR MISUSING THIS SOFTWARE.
 # See the GNU General Public License for more details.
 
-LAME_OPTS="--vbr-new -V 0 -b 320 --ignore-tag-errors"
+LAME_OPTS="--vbr-new -V 0 -b 320"
 
 old_IFS=${IFS}
 IFS='
@@ -41,13 +41,13 @@ for N_files in ${!files[@]}
         export "$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])=\"${vars[${N_vars}]#*=}\""
     done
     flac -dc "${files[${N_files}]}" |\
-    lame ${LAME_OPTS} \
-        "${artist:+--ta ${artist}}" \
-        "${tracknumber:+--tn ${tracknumber}}" \
-        "${title:+--tt ${title}}" \
-        "${album:+--tl ${album}}" \
-        "${genre:+--tg ${genre}}" \
-        "${date:+--ty ${date}}" \
-        "${comment:+--tc ${comment}}" \
-        --add-id3v2 - "${files[${N_files}]/\.flac/.mp3}"
+    lame --ignore-tag-errors --add-id3v2 ${LAME_OPTS} \
+        ${artist:+--ta "${artist}"} \
+        ${tracknumber:+--tn "${tracknumber}"} \
+        ${title:+--tt "${title}"} \
+        ${album:+--tl "${album}"} \
+        ${date:+--ty "${date}"} \
+        ${genre:+--tg "${genre}"} \
+        ${comment:+--tc "${comment}"} -\
+          "${files[${N_files}]/\.flac/.mp3}"
 done
