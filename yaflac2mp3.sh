@@ -42,12 +42,12 @@ for N_files in ${!files[@]}
     done
     flac -dc "${files[${N_files}]}" |\
     lame --ignore-tag-errors --add-id3v2 ${LAME_OPTS} \
-        ${artist:+--ta "${artist}"} \
-        ${tracknumber:+--tn "${tracknumber}"} \
-        ${title:+--tt "${title}"} \
-        ${album:+--tl "${album}"} \
-        ${date:+--ty "${date}"} \
-        ${genre:+--tg "${genre}"} \
-        ${comment:+--tc "${comment}"} -\
+        ${artist:+--ta ${artist}} \
+        ${tracknumber:+--tn ${tracknumber}} \
+        ${title:+--tt ${title}} \
+        ${album:+--tl ${album}} \
+        ${date:+--ty ${date}} \
+        ${genre:+--tg ${genre}} \
+        ${comment:+--tc ${comment}} -\
         "${files[${N_files}]/\.flac/.mp3}"
 done
