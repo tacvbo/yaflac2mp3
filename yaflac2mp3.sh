@@ -8,6 +8,8 @@
 #
 # Author:
 #       Octavio Ruiz (Ta^3) <tacvbo@tacvbo.net>
+# Contributors:
+#        Zythme <zythmer@gmail.com>
 # Thanks:
 #       Those comments at:
 #       http://www.linuxtutorialblog.com/post/solution-converting-flac-to-mp3
@@ -21,12 +23,70 @@
 # See the GNU General Public License for more details.
 
 LAME_OPTS="-V 0 --vbr-new"
+LAME="lame"
+FLAC="flac"
+DIR="."
+ID3=""
 
-id3v2=$(which id3v2)
+usage()
+{
+    EXIT=${1:-1}
+
+    cat<<EOF
+
+Usage: $0 [-l <lame>] [-f <flac>] [-x <lame_opts>] [-d <dir>] [-i]
+Usage: $0 -h
+
+Default options:
+  <lame_opts> = ${LAME_OPTS}
+  <lame>      = ${LAME}
+  <flac>      = ${FLAC}
+  <dir>       = ${DIR}
+  <id3_tool>  = ${ID3}
+
+  If you use -i, id3_tool is set to id3v2.
+  This is only necessary if your LAME version doesn't tag properly
+
+EOF
+
+    exit ${EXIT}
+}
+
+while getopts l:f:x:d:hi name; do
+    case "${name}" in
+        l)
+            LAME="${OPTARG}"
+            ;;
+        f)
+            FLAC="${OPTARG}"
+            ;;
+        x)
+            LAME_OPTS="${OPTARG}"
+            ;;
+        d)
+            DIR="${OPTARG}"
+            ;;
+        h)
+            usage 0
+            ;;
+        i)
+            ID3="$(which id3v2 || echo '')"
+            if [ ! -x "$ID3" ]; then
+                printf "Requested id3v2 but not found.  Only using lame.\n\n"
+            fi
+            ;;
+        ?)
+            usage 1
+            ;;
+    esac
+done
+
+[[ ! -d "${DIR}" ]]  && printf "\"${DIR}\" is not a directory\n\n" && usage 1
+
 old_IFS=${IFS}
 IFS='
 '
-files=( `find . -type f -name '*flac'` )
+files=( `find "${DIR}" \( -type f -o -type l \) -a -name '*.flac'` )
 
 for N_files in ${!files[@]}
   do
@@ -34,11 +94,15 @@ for N_files in ${!files[@]}
 
     for N_vars in ${!vars[@]}
       do
+#        Grr
+#        varname="$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])"
+#        varstring="${vars[${N_vars}]#*=}"
+#        export "${varname// /_}=${varstring// /_}"
         export "$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])=${vars[${N_vars}]#*=}"
     done
 
-    flac -dc "${files[${N_files}]}" |\
-    lame --ignore-tag-errors --add-id3v2 ${LAME_OPTS} \
+    "${FLAC}" -dc "${files[${N_files}]}" |\
+    "${LAME}" --ignore-tag-errors --add-id3v2 "${LAME_OPTS}" \
         ${artist:+--ta} ${artist} \
         ${tracknumber:+--tn} ${tracknumber} \
         ${title:+--tt} ${title} \
@@ -48,7 +112,9 @@ for N_files in ${!files[@]}
         ${comment:+--tc} ${comment} \
         - "${files[${N_files}]/\.flac/.mp3}"
 
-    [[ -x ${id3v2} ]] && ${id3v2} \
+    # User should only run this if they know their version of lame doesn't tag
+    # properly.  Does this happen in practice?  LAME 3.98 supports id3 v1 and v2
+    [[ -x ${ID3} ]] && ${ID3} \
         ${artist:+--artist} ${artist} \
         ${tracknumber:+--track} ${tracknumber} \
         ${title:+--song} ${title} \
@@ -60,3 +126,5 @@ for N_files in ${!files[@]}
 
 done
 IFS=${old_IFS}
+
+exit 0
