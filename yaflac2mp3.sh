@@ -23,9 +23,10 @@
 # See the GNU General Public License for more details.
 
 LAME_OPTS="-V 0 --vbr-new"
-LAME="lame"
-FLAC="flac"
-DIR="."
+LAME=$(which lame)
+FLAC=$(which flac)
+SOURCE="."
+DEST="."
 ID3=""
 
 usage()
@@ -34,14 +35,15 @@ usage()
 
     cat<<EOF
 
-Usage: $0 [-l <lame>] [-f <flac>] [-x <lame_opts>] [-d <dir>] [-i]
+Usage: $0 [-l <lame>] [-f <flac>] [-x <lame_opts>] [-s <source>] [-d <dest>] [-i]
 Usage: $0 -h
 
 Default options:
   <lame_opts> = ${LAME_OPTS}
   <lame>      = ${LAME}
   <flac>      = ${FLAC}
-  <dir>       = ${DIR}
+  <source>    = ${SOURCE}
+  <dest>      = ${DEST}
   <id3_tool>  = ${ID3}
 
   If you use -i, id3_tool is set to id3v2.
@@ -52,7 +54,8 @@ EOF
     exit ${EXIT}
 }
 
-while getopts l:f:x:d:hi name; do
+while getopts l:f:x:d:s:hi name; do
+
     case "${name}" in
         l)
             LAME="${OPTARG}"
@@ -63,11 +66,11 @@ while getopts l:f:x:d:hi name; do
         x)
             LAME_OPTS="${OPTARG}"
             ;;
-        d)
-            DIR="${OPTARG}"
+        s)
+            SOURCE="${OPTARG}"
             ;;
-        h)
-            usage 0
+        d)
+            DEST="${OPTARG}"
             ;;
         i)
             ID3="$(which id3v2 || echo '')"
@@ -75,18 +78,25 @@ while getopts l:f:x:d:hi name; do
                 printf "Requested id3v2 but not found.  Only using lame.\n\n"
             fi
             ;;
+        h)
+            usage 0
+            ;;
         ?)
             usage 1
             ;;
     esac
 done
 
-[[ ! -d "${DIR}" ]]  && printf "\"${DIR}\" is not a directory\n\n" && usage 1
+if [[ ! -d "${DEST}" ]]; then
+  mkdir -p "${DEST}"
+  [[ "$?" != "0" ]] && exit 2
+fi
+[[ ! -d "${SOURCE}" ]] && printf "\"${SOURCE}\" is not a directory\n\n" && usage 1
 
 old_IFS=${IFS}
 IFS='
 '
-files=( `find "${DIR}" \( -type f -o -type l \) -a -name '*.flac'` )
+files=( `find "${SOURCE}" \( -type f -o -type l \) -a -name '*.flac'` )
 
 for N_files in ${!files[@]}
   do
@@ -110,7 +120,7 @@ for N_files in ${!files[@]}
         ${date:+--ty} ${date} \
         ${genre:+--tg} ${genre} \
         ${comment:+--tc} ${comment} \
-        - "${files[${N_files}]/\.flac/.mp3}"
+        - "${DEST}/${files[${N_files}]/\.flac/.mp3}"
 
     # User should only run this if they know their version of lame doesn't tag
     # properly.  Does this happen in practice?  LAME 3.98 supports id3 v1 and v2
@@ -122,7 +132,7 @@ for N_files in ${!files[@]}
         ${date:+--year} ${date} \
         ${genre:+--genre} ${genre} \
         ${comment:+--comment} ${comment} \
-        "${files[${N_files}]/\.flac/.mp3}"
+        "${DEST}/${files[${N_files}]/\.flac/.mp3}"
 
 done
 IFS=${old_IFS}
