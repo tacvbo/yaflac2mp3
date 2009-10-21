@@ -13,6 +13,8 @@
 # Thanks:
 #       Those comments at:
 #       http://www.linuxtutorialblog.com/post/solution-converting-flac-to-mp3
+#       Thatch's fork and fixes at:
+#       http://github.com/
 # WebPage:
 #       https://github.com/tacvbo/yaflac2mp3/tree
 #
@@ -35,7 +37,8 @@ usage()
 
     cat<<EOF
 
-Usage: $0 [-l <lame>] [-f <flac>] [-x <lame_opts>] [-s <source>] [-d <dest>] [-i]
+Usage: $0 [-l <lame>] [-f <flac>] [-x <lame_opts>]
+          [-s <source>] [-d <dest>] [-o] [-i]
 Usage: $0 -h
 
 Default options:
@@ -46,6 +49,8 @@ Default options:
   <dest>      = ${DEST}
   <id3_tool>  = ${ID3}
 
+  If you use -o, an existing mp3 file at destination dir it's overwritten
+
   If you use -i, id3_tool is set to id3v2.
   This is only necessary if your LAME version doesn't tag properly
 
@@ -54,7 +59,7 @@ EOF
     exit ${EXIT}
 }
 
-while getopts l:f:x:d:s:hi name; do
+while getopts l:f:x:d:s:hio name; do
 
     case "${name}" in
         l)
@@ -72,10 +77,13 @@ while getopts l:f:x:d:s:hi name; do
         d)
             DEST="${OPTARG}"
             ;;
+        o)
+            OVRWRT=yes
+            ;;
         i)
             ID3="$(which id3v2 || echo '')"
-            if [ ! -x "$ID3" ]; then
-                printf "Requested id3v2 but not found.  Only using lame.\n\n"
+            if [[ ! -x "$ID3" ]]; then
+                echo -e "Requested id3v2 but not found.  Only using lame.\n\n"
             fi
             ;;
         h)
@@ -91,15 +99,17 @@ if [[ ! -d "${DEST}" ]]; then
   mkdir -p "${DEST}"
   [[ "$?" != "0" ]] && exit 2
 fi
-[[ ! -d "${SOURCE}" ]] && printf "\"${SOURCE}\" is not a directory\n\n" && usage 1
+[[ ! -d "${SOURCE}" ]] && echo "\"${SOURCE}\" is not a directory" && usage 1
 
 old_IFS=${IFS}
 IFS='
 '
-files=( `find "${SOURCE}" \( -type f -o -type l \) -a -name '*.flac'` )
+files=( `find "${SOURCE}" \( -type f -o -type l \) -a -iname '*.flac'` )
 
 for N_files in ${!files[@]}
   do
+    dst_file="${DEST}/${files[${N_files}]/%\.flac/.mp3}"
+    [[ -e "$dst_file" ]] && [[ -z $OVRWRT ]] && continue
     vars=( `metaflac --no-utf8-convert --export-tags-to=- "${files[${N_files}]}"` )
 
     for N_vars in ${!vars[@]}
@@ -120,7 +130,7 @@ for N_files in ${!files[@]}
         ${date:+--ty} ${date} \
         ${genre:+--tg} ${genre} \
         ${comment:+--tc} ${comment} \
-        - "${DEST}/${files[${N_files}]/\.flac/.mp3}"
+        - "${dst_file}"
 
     # User should only run this if they know their version of lame doesn't tag
     # properly.  Does this happen in practice?  LAME 3.98 supports id3 v1 and v2
@@ -132,7 +142,7 @@ for N_files in ${!files[@]}
         ${date:+--year} ${date} \
         ${genre:+--genre} ${genre} \
         ${comment:+--comment} ${comment} \
-        "${DEST}/${files[${N_files}]/\.flac/.mp3}"
+          "${dst_file}"
 
 done
 IFS=${old_IFS}
