@@ -24,7 +24,7 @@
 # OTHER  KIND OF LOSS WHILE USING OR MISUSING THIS SOFTWARE.
 # See the GNU General Public License for more details.
 
-LAME_OPTS="-V 0 --vbr-new"
+LAME_OPTS="-b 320 -h"
 LAME=$(which lame)
 FLAC=$(which flac)
 SOURCE="."
@@ -104,21 +104,20 @@ fi
 old_IFS=${IFS}
 IFS='
 '
-files=( `find "${SOURCE}" \( -type f -o -type l \) -a -iname '*.flac'` )
+files=( $( find "${SOURCE}" \( -type f -o -type l \) -a -iname '*.flac' ) )
 
 for N_files in ${!files[@]}
   do
     dst_file="${DEST}/${files[${N_files}]/%\.flac/.mp3}"
     [[ -e "$dst_file" ]] && [[ -z $OVRWRT ]] && continue
-    vars=( `metaflac --no-utf8-convert --export-tags-to=- "${files[${N_files}]}"` )
+    vars=( $( metaflac --no-utf8-convert --export-tags-to=- "${files[${N_files}]}" ) )
 
     for N_vars in ${!vars[@]}
       do
-#        Grr
-#        varname="$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])"
-#        varstring="${vars[${N_vars}]#*=}"
-#        export "${varname// /_}=${varstring// /_}"
-        export "$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])=${vars[${N_vars}]#*=}"
+#       export "$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])=${vars[${N_vars}]#*=}"
+        varname="$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])"
+        varstring="${vars[${N_vars}]#*=}"
+        export "${varname// /_}=${varstring// /_}"
     done
 
     "${FLAC}" -dc "${files[${N_files}]}" |\
