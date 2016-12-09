@@ -117,7 +117,7 @@ for N_files in ${!files[@]}
 #       export "$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])=${vars[${N_vars}]#*=}"
         varname="$(echo "${vars[${N_vars}]%=*}" | tr [:upper:] [:lower:])"
         varstring="${vars[${N_vars}]#*=}"
-        export "${varname// /_}=${varstring// /_}"
+        export "${varname// /_}=${varstring}"
     done
 
     "${FLAC}" -dc "${files[${N_files}]}" |\
